@@ -15,15 +15,16 @@ const fastFoods = {
   7: "Jollof rice, Plantain and Chicken Combo",
 };
 const orderHistory = [];
-
+const samsonKey = "7e1a2b7cb6d04bc2b50056d93e48cd27"
+app.set('trust proxy', 1)
 app.use(express.static(__dirname + "/public"));
-app.use(
-  session({
-    secret: "secret-key",
-    resave: false,
-    saveUninitialized: true,
-  })
-);
+
+app.use(session({
+  secret:  samsonKey, 
+  resave: true, 
+  saveUninitialized: true,
+  maxAge: 3600000   // 1 hour (in milliseconds)
+}));
 
 io.use(
   sharedSession(session, {

@@ -4,68 +4,87 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Bootstrap css code -->
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" 
+      rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" 
+      crossorigin="anonymous">
+      
+        <!-- Bootstrap script code -->
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" 
+      integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" 
+      crossorigin="anonymous"></script>
+
+      <link rel="stylesheet" href="style.css">
     <title>ChatBot</title>
   </head>
   <body>
     <!-- HTML -->
-    <div id="chatBox"></div>
-    <input type="text" id="inputField" />
-    <button id="sendButton">Send</button>
+    <div class="mt-5 py-4 mx-auto" style="max-width: 700px">
+      <div id="chatBox"></div>
+      <form class="form-group d-flex flex-column align-items-end">
+        <input type="text" id="inputField" class="form-control mb-3"/>
+        <button id="sendButton" class="btn btn-primary">Send</button>
+      </form>
+    </div>
   </body>
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <script>
-        // JavaScript
-    $(document).ready(() => {
-      const socket = io();
+     // Establish a socket connection to the server
+const socket = io();
 
-      const chatBox = $("#chatBox");
-      const inputField = $("#inputField");
-      const sendButton = $("#sendButton");
+// Query DOM elements
+const inputField = document.getElementById("inputField");
+const chatBox = document.getElementById("chatBox");
 
-      function appendMessage(message, sender) {
-        const messageElement = $("<div>")
-          .addClass("message-text")
-          .attr("id", sender)
-          .text(message);
+// Helper function to append a message to the chat box
+function appendMessage(message, sender) {
+  const messageElement = document.createElement("div");
+  messageElement.classList.add("message-text", sender);
+  messageElement.textContent = message;
+  
+  const timestamp = new Date().toLocaleTimeString(); // create timestamp
+  const timestampElement = document.createElement("span"); // create span element for timestamp
+  timestampElement.classList.add("timestamp");
+  timestampElement.textContent = timestamp;
+  
+  const messageContainer = document.createElement("div");
+  messageContainer.classList.add("message-container");
+  messageContainer.appendChild(messageElement);
+  messageContainer.appendChild(timestampElement);
+  chatBox.appendChild(messageContainer);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
 
-        const timestamp = new Date().toLocaleTimeString();
-        const timestampElement = $("<span>")
-          .addClass("timestamp")
-          .text(timestamp);
+// Handle sending messages
+function sendMessage() {
+  const message = inputField.value.trim();
+  if (message === "") {
+    return;
+  }
+  appendMessage(message, "user");
+  socket.emit("user-message", message);
+  inputField.value = "";
+}
 
-        const messageContainer = $("<div>").addClass(
-          `message-container ${sender}`
-        );
-        const messageOuterContainer = $("<div>").addClass(
-          `message-outer-container ${sender}`
-        );
-        messageElement.html(message.replace(/\n/g, "<br>"));
-        messageOuterContainer.append(messageContainer);
-        messageContainer.append(messageElement, timestampElement);
-        chatBox.append(messageOuterContainer);
-        chatBox.scrollTop(chatBox.prop("scrollHeight"));
-      }
+// Handle receiving messages from the server
+socket.on("bot-message", (message) => {
+  appendMessage(message, "bot");
+});
 
-      function sendMessage() {
-        const message = inputField.val();
-        if (message === "") {
-          return;
-        }
-        appendMessage(message, "user");
-        socket.emit("user-message", message);
-        inputField.val("");
-      }
+// Attach event listeners
+document.querySelector("form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  sendMessage();
+});
 
-      socket.on("bot-message", (message) => {
-        appendMessage(message, "bot");
-      });
+document.getElementById("sendButton").addEventListener("click", sendMessage);
 
-      sendButton.on("click", sendMessage);
-      inputField.on("keydown", (event) => {
-        if (event.key === "Enter") {
-          sendMessage();
-        }
-      });
-    });
+document.getElementById("inputField").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    sendMessage();
+  }
+});
+
   </script>
 </html>

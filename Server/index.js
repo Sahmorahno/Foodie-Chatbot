@@ -1,35 +1,59 @@
-const express = require("express");
+import "reflect-metadata";
+import RedisStore from "connect-redis";
+import dotenv from "dotenv";
+dotenv.config();
+import express from "express";
+import session from "express-session";
+import sharedSession from "express-socket.io-session";
+import http from "http";
+import path from "path";
+import { createClient } from "redis";
+import { Server } from "socket.io";
+import { fileURLToPath } from "url";
+import { fastFoods } from "./utils/items.js";
+import { COOKIE_NAME, __prod__ } from "./utils/constant.js";
+
 const app = express();
-const http = require("http");
+
+
+let redisClient = createClient();
+redisClient.connect().catch(console.error);
+
+let redisStore = new RedisStore({
+  client: redisClient,
+  prefix: "myapp:",
+});
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const server = http.createServer(app);
-const { Server } = require("socket.io");
 const io = new Server(server);
-const session = require("express-session");
-const sharedSession = require("express-socket.io-session");
-const fastFoods = {
-  2: "Spaghetti",
-  3: "Pizza",
-  4: "Fried rice, Coleslaw and Chicken Combo",
-  5: "Jollof rice, Plantain and Chicken Combo",
-  6: "Pounded yam and Vegetable soup",
-  7: "Jollof rice, Plantain and Chicken Combo",
-};
+
 const orderHistory = [];
 
-app.use(express.static(__dirname + "/public"));
-app.use(
-  session({
-    secret: "secret-key",
-    resave: false,
-    saveUninitialized: true,
-  })
-);
+const sessionStore = session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: true,
+  name: COOKIE_NAME,
+  store: redisStore,
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
+    httpOnly: !__prod__,
+    sameSite: !__prod__ ? 'none': 'lax',
+    secure: !__prod__,
+  },
+});
 
-io.use(
-  sharedSession(session, {
-    autoSave: true,
-  })
-);
+app.use(express.static(__dirname + "/public"));
+
+
+app.use(sessionStore);
+
+io.engine.use(sessionStore);
+
+io.use(sharedSession(sessionStore));
 
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
@@ -66,6 +90,9 @@ io.on("connection", (socket) => {
         case "3":
         case "4":
         case "5":
+        case "6":
+        case "7":
+        case "8":
           const selectedIndex = parseInt(message);
           if (fastFoods.hasOwnProperty(selectedIndex)) {
             const selectedItem = fastFoods[selectedIndex];

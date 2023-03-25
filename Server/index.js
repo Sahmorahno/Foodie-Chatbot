@@ -15,8 +15,7 @@ import { COOKIE_NAME, __prod__ } from "./utils/constant.js";
 
 const app = express();
 
-
-let redisClient = createClient();
+let redisClient = createClient({ url: process.env.REDIS_URL });
 redisClient.connect().catch(console.error);
 
 let redisStore = new RedisStore({
@@ -41,13 +40,12 @@ const sessionStore = session({
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
     httpOnly: !__prod__,
-    sameSite: !__prod__ ? 'none': 'lax',
+    sameSite: !__prod__ ? "none" : "lax",
     secure: !__prod__,
   },
 });
 
 app.use(express.static(__dirname + "/public"));
-
 
 app.use(sessionStore);
 
